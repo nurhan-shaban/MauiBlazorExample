@@ -70,8 +70,4 @@
         <PackageReference Include="Radzen.Blazor" Version="4.13.0" />
     </ItemGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\DbClassLibrary\DbClassLibrary.csproj" />
-    </ItemGroup>
-
 </Project>
