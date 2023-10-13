@@ -1,0 +1,53 @@
+﻿@page "/"
+@inject IJSRuntime js
+@inject Service.IReceiptService service
+@using Microsoft.Extensions.Configuration;
+@inject IConfiguration configuration
+@inject NavigationManager navigate
+
+<h3>Login</h3>
+
+<div>
+    <label>Email:</label>
+    <input type="email" @bind="@Email" />
+</div>
+
+<div>
+    <label>Password:</label>
+    <input type="password" @bind="@Password" />
+</div>
+
+<button @onclick="Login">Login</button>
+
+<p>@Message</p>
+
+
+@code{
+    private string Email { get; set; }
+    private string Password { get; set; }
+    private string Message { get; set; }
+
+    protected override void OnInitialized()
+    {
+        var login = configuration.GetRequiredSection("Login").Get<Login>();
+        if(login is not null)
+        {
+            Email = login.Email;
+            Password = login.Password;
+        }
+    }
+
+    private async void Login()
+    {
+        Message = "Please Wait";
+        var s = await service.LoginRequestAsync(Password, Email);
+        Message = s.message;
+        StateHasChanged();
+
+        if(s.response)
+        {
+            navigate.NavigateTo("/counter");
+        }
+    }
+    
+}

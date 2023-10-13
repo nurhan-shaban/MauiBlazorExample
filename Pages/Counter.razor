@@ -1,0 +1,221 @@
+﻿@page "/counter"
+@using Microsoft.Extensions.Configuration;
+@using Microsoft.Extensions.Options;
+@inject Service.IReceiptService service
+@inject IConfiguration configuration
+@inject NavigationManager navigation
+
+<p>@Message</p>
+
+<RadzenSteps Change=@OnChange SelectedIndex="@SelectedIndex" SelectedIndexChanged="arg => SelectedIndexChanged(arg)">
+    <Steps>
+        <RadzenStepsItem Text="Stores">
+            <RadzenText TextStyle="TextStyle.H5" TagName="TagName.H3" class="rz-my-6">1. Select a Store to continue</RadzenText>
+            <RadzenDataGrid ColumnWidth="200px" AllowFiltering="true" AllowPaging="true" AllowSorting="true" Data="@_storeResponses.response" TItem="Model.StoreResponse" @bind-Value=selectedStore>
+                <Columns>
+                    <RadzenDataGridColumn TItem="Model.StoreResponse" Property="@nameof(Model.StoreResponse.id)" Title="Store ID" Width="140px" />
+                    <RadzenDataGridColumn TItem="Model.StoreResponse" Property="@nameof(Model.StoreResponse.name)" Title="Store Name" />
+                    <RadzenDataGridColumn TItem="Model.StoreResponse" Property="@nameof(Model.StoreResponse.code)" Title="Store code" />
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenStepsItem>
+        <RadzenStepsItem Text="Terminal">
+            <RadzenText TextStyle="TextStyle.H5" TagName="TagName.H3" class="rz-my-6">2. Select a Terminal to continue</RadzenText>
+            <RadzenDataGrid ColumnWidth="200px" AllowFiltering="true" AllowPaging="true" AllowSorting="true" Data="@_terminals.response" TItem="TerminalResponse" @bind-Value=selectedTerminal>
+                <Columns>
+                    <RadzenDataGridColumn TItem="TerminalResponse" Property="@nameof(TerminalResponse.id)" Title="Store ID" Width="140px" />
+                    <RadzenDataGridColumn TItem="TerminalResponse" Property="@nameof(TerminalResponse.name)" Title="Terminal Name" />
+                    <RadzenDataGridColumn TItem="TerminalResponse" Property="@nameof(TerminalResponse.number)" Title="Terminal number" />
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenStepsItem>
+        <RadzenStepsItem Text="Items">
+            <RadzenText TextStyle="TextStyle.H5" TagName="TagName.H3" class="rz-my-6">3. Select a Item to continue</RadzenText>
+            <RadzenDataGrid ColumnWidth="200px" AllowFiltering="true" AllowPaging="true" AllowSorting="true" Data="@_downloadItems.response" 
+                            TItem="DownloadItemResponse" @bind-Value=selectedItem
+                            SelectionMode="DataGridSelectionMode.Multiple" PageSize="10">
+                <Columns>
+                    <RadzenDataGridColumn TItem="DownloadItemResponse" Property="@nameof(DownloadItemResponse.id)" Title="Item ID" Width="140px" />
+                    <RadzenDataGridColumn TItem="DownloadItemResponse" Property="@nameof(DownloadItemResponse.name)" Title="Item Name" />
+                    <RadzenDataGridColumn TItem="DownloadItemResponse" Property="@nameof(DownloadItemResponse.sellPrice)" Title="Item sell price" />
+                    <RadzenDataGridColumn TItem="DownloadItemResponse" Title="Quantity">
+                        <Template Context="data">
+                            <RadzenNumeric @bind-Value=data.quantity class="w-100"/>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenStepsItem>
+        <RadzenStepsItem Text="Payment">
+            <RadzenText TextStyle="TextStyle.H5" TagName="TagName.H3" class="rz-my-6">4. Select a Payments to continue</RadzenText>
+            <RadzenButton Shade="Shade.Lighter" Click=@(args => OnSubmit()) Text="Submit" ButtonStyle="ButtonStyle.Dark" />
+            <RadzenDataGrid ColumnWidth="200px" AllowFiltering="true" AllowPaging="true" 
+                            AllowSorting="true" Data="@_payments.response" TItem="PaymentsResponse" @bind-Value=selectedPayments>
+                <Columns>
+                    <RadzenDataGridColumn TItem="PaymentsResponse" Property="@nameof(PaymentsResponse.id)" Title="ID" Width="140px" />
+                    <RadzenDataGridColumn TItem="PaymentsResponse" Property="@nameof(PaymentsResponse.name)" Title="Name" />
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenStepsItem>
+    </Steps>
+</RadzenSteps>
+
+@code {
+    private string Message{ get; set; }
+    private int SelectedIndex{ get; set; }
+    private GlobalResponse<IEnumerable<StoreResponse>> _storeResponses = new GlobalResponse<IEnumerable<StoreResponse>>();
+    private GlobalResponse<IEnumerable<TerminalResponse>> _terminals = new();
+    private GlobalResponse<IEnumerable<PaymentsResponse>> _payments = new();
+    private GlobalResponse<IEnumerable<DownloadItemResponse>> _downloadItems = new();
+    private GlobalResponse<IEnumerable<VatResponse>> _vats = new();
+
+    private IList<StoreResponse> selectedStore;
+    private IList<TerminalResponse> selectedTerminal;
+    private IList<DownloadItemResponse> selectedItem;
+    private IList<PaymentsResponse> selectedPayments;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Message = "Please Wait";
+        _storeResponses = await service.GetStoreAsync();
+        Message = $"store response: {_storeResponses.message}";
+    }
+
+    async void OnChange(int index)
+    {
+        switch (index)
+        {
+            case 1:
+                Message = "Please Wait";
+                _terminals = await service.GetTerminalAsync();
+                Message = $"Terminal response: {_terminals.message}";
+                break;
+
+            case 2:
+                Message = "Please Wait";
+                _downloadItems = await service.DownloadItemsAsyc();
+                _vats = await service.VatsAsync();
+                Message = $"Item response: {_downloadItems.message} - Vats response: {_vats.message}";
+                break;
+
+            case 3:
+                Message = "Please Wait";
+                _payments = await service.GetPaymentsAsync();
+                Message = $"Payments response: {_payments.message}";
+                break;
+
+            default:
+                Message = "Please Wait";
+                _storeResponses = await service.GetStoreAsync();
+                Message = $"StoreResponses response: {_storeResponses.message}";
+                break;
+        }
+
+        StateHasChanged();
+    }
+
+    async void OnSubmit()
+    {
+        var request = new ReceiptsRequest();
+        try
+        {
+            var readSetting = configuration.GetRequiredSection("Settings").Get<Settings>();
+            int number = readSetting.Number;
+
+            request.number = number;
+            request.receiptTypeId = readSetting.ReceiptTypeId;
+            request.zNumber = readSetting.ZNumber;
+            request.fiscalReceiptTimestamp = DateTime.Now;
+            request.total = selectedItem.Sum(x => x.sellPrice * x.quantity);
+            request.itemsCount = selectedItem.Count;
+            request.storeId = GetSelectedStoreId(selectedStore);
+            request.terminalId = GetSelectedTerminalId(selectedTerminal);
+            request.items = GetSelectedItems(selectedItem);
+            request.vatTotal = request.items.Sum(x => x.VatSum);
+            request.payments = GetSelectedPayment(selectedPayments,request.total);
+            request.receiptStatusId = 1;
+
+            var res = await service.ReceiptsPostAsync(request);
+
+            if (res == "OK")
+            {
+                Message = "Success Insert Receipt";
+
+                StateHasChanged();
+                await Task.Delay(4000);
+                navigation.NavigateTo("/counter",forceLoad: true, replace: true);
+            }
+            else
+            {
+                Message = res;
+            }
+        }
+        catch(Exception e)
+        {
+            Message = e.Message;
+        }
+
+        StateHasChanged();
+    }
+
+    List<ReceiptsRequest.Item> GetSelectedItems(IList<DownloadItemResponse> itemResponses)
+    {
+        var requestItems = new List<ReceiptsRequest.Item>();
+        foreach (var item in itemResponses)
+        {
+            var insertItem = new ReceiptsRequest.Item();
+            var vatRate = _vats.response.FirstOrDefault(x => x.id == item.vatId).value;
+
+            insertItem.ItemId = item.id;
+            insertItem.Quantity = item.quantity;
+            insertItem.Price = item.sellPrice;
+            insertItem.GrossTotal = item.sellPrice * item.quantity;
+            insertItem.VatId = item.vatId;
+            insertItem.NetTotal = insertItem.GrossTotal / ((100 + vatRate) / 100);
+            insertItem.VatSum = insertItem.GrossTotal - insertItem.NetTotal;
+
+            insertItem.SerialNumber = "1234-7890";
+
+            requestItems.Add(insertItem);
+        }
+
+        return requestItems;
+    }
+
+    long GetSelectedStoreId(IList<StoreResponse> stores)
+    {
+        if (stores is not null)
+        {
+            return stores.FirstOrDefault().id;
+        }
+        return 0;
+    }
+
+    long GetSelectedTerminalId(IList<TerminalResponse> terminals)
+    {
+        if(terminals is not null)
+        {
+            return terminals.FirstOrDefault().id;
+        }
+
+        return 0;   
+    }
+
+    List<ReceiptsRequest.Payment> GetSelectedPayment(IList<PaymentsResponse> payments, decimal total)
+    {
+        var paments = new List<ReceiptsRequest.Payment>();
+
+        var payment = new ReceiptsRequest.Payment();
+        payment.paymentId = payments.FirstOrDefault().id;
+        payment.amount = total;
+        paments.Add(payment);
+
+        return paments;
+
+    }
+
+    void SelectedIndexChanged(int index)
+    {
+        SelectedIndex = index;
+    }
+}
