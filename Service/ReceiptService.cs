@@ -1,8 +1,8 @@
-﻿using MauiBlazorExample.Model;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Blazored.SessionStorage;
 using System.Net;
+using MauiBlazorExample.Model.WebModel;
 
 namespace MauiBlazorExample.Service
 {
@@ -154,6 +154,8 @@ namespace MauiBlazorExample.Service
                     new AuthenticationHeaderValue("Bearer", token);
 
                 var http = await _httpClient.PostAsJsonAsync<ReceiptsRequest>("/Receipts", receiptsRequest);
+
+                var d = await http.Content.ReadAsStringAsync();
 
                 if(http.IsSuccessStatusCode)
                 {

@@ -1,5 +1,4 @@
-﻿
-namespace MauiBlazorExample.Model
+﻿namespace MauiBlazorExample.Model.WebModel
 {
     internal class LoginResponse
     {

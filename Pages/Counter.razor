@@ -11,11 +11,11 @@
     <Steps>
         <RadzenStepsItem Text="Stores">
             <RadzenText TextStyle="TextStyle.H5" TagName="TagName.H3" class="rz-my-6">1. Select a Store to continue</RadzenText>
-            <RadzenDataGrid ColumnWidth="200px" AllowFiltering="true" AllowPaging="true" AllowSorting="true" Data="@_storeResponses.response" TItem="Model.StoreResponse" @bind-Value=selectedStore>
+            <RadzenDataGrid ColumnWidth="200px" AllowFiltering="true" AllowPaging="true" AllowSorting="true" Data="@_storeResponses.response" TItem="StoreResponse" @bind-Value=selectedStore>
                 <Columns>
-                    <RadzenDataGridColumn TItem="Model.StoreResponse" Property="@nameof(Model.StoreResponse.id)" Title="Store ID" Width="140px" />
-                    <RadzenDataGridColumn TItem="Model.StoreResponse" Property="@nameof(Model.StoreResponse.name)" Title="Store Name" />
-                    <RadzenDataGridColumn TItem="Model.StoreResponse" Property="@nameof(Model.StoreResponse.code)" Title="Store code" />
+                    <RadzenDataGridColumn TItem="StoreResponse" Property="@nameof(StoreResponse.id)" Title="Store ID" Width="140px" />
+                    <RadzenDataGridColumn TItem="StoreResponse" Property="@nameof(StoreResponse.name)" Title="Store Name" />
+                    <RadzenDataGridColumn TItem="StoreResponse" Property="@nameof(StoreResponse.code)" Title="Store code" />
                 </Columns>
             </RadzenDataGrid>
         </RadzenStepsItem>
@@ -122,17 +122,17 @@
             var readSetting = configuration.GetRequiredSection("Settings").Get<Settings>();
             int number = readSetting.Number;
 
-            request.number = number;
+            request.receiptNumber = number;
             request.receiptTypeId = readSetting.ReceiptTypeId;
             request.zNumber = readSetting.ZNumber;
             request.fiscalReceiptTimestamp = DateTime.Now;
-            request.total = selectedItem.Sum(x => x.sellPrice * x.quantity);
+            request.grossTotal = selectedItem.Sum(x => x.sellPrice * x.quantity);
             request.itemsCount = selectedItem.Count;
             request.storeId = GetSelectedStoreId(selectedStore);
             request.terminalId = GetSelectedTerminalId(selectedTerminal);
             request.items = GetSelectedItems(selectedItem);
             request.vatTotal = request.items.Sum(x => x.VatSum);
-            request.payments = GetSelectedPayment(selectedPayments,request.total);
+            request.payments = GetSelectedPayment(selectedPayments,request.grossTotal);
             request.receiptStatusId = 1;
 
             var res = await service.ReceiptsPostAsync(request);
@@ -169,10 +169,10 @@
             insertItem.ItemId = item.id;
             insertItem.Quantity = item.quantity;
             insertItem.Price = item.sellPrice;
-            insertItem.GrossTotal = item.sellPrice * item.quantity;
+            insertItem.sellingAmount = item.sellPrice * item.quantity;
             insertItem.VatId = item.vatId;
-            insertItem.NetTotal = insertItem.GrossTotal / ((100 + vatRate) / 100);
-            insertItem.VatSum = insertItem.GrossTotal - insertItem.NetTotal;
+            insertItem.sellingAmountDiscounted = insertItem.sellingAmount / ((100 + vatRate) / 100);
+            insertItem.VatSum = insertItem.sellingAmount - insertItem.sellingAmountDiscounted;
 
             insertItem.SerialNumber = "1234-7890";
 

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MauiBlazorExample.Model
+namespace MauiBlazorExample.Model.WebModel
 {
     internal class LoginRequest
     {

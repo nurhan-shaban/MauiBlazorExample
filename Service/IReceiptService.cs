@@ -1,4 +1,5 @@
-﻿using MauiBlazorExample.Model;
+﻿using MauiBlazorExample.Model.WebModel;
+
 namespace MauiBlazorExample.Service
 {
     internal interface IReceiptService
